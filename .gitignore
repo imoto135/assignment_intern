@@ -1,0 +1,13 @@
+__pycache__/
+
+
+
+venv/
+env/
+.env/
+
+eda_output/
+*.png
+*.jpg
+*.jpeg
+.DS_Store
