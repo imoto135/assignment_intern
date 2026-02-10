@@ -5,9 +5,10 @@ __pycache__/
 venv/
 env/
 .env/
-
+*.json
 eda_output/
 *.png
 *.jpg
 *.jpeg
 .DS_Store
+experiments/
