@@ -1,5 +1,5 @@
 """
-Transformer model training script for time series forecasting on ETTh1 dataset.
+LSTM model training script for time series forecasting on ETTh1 dataset.
 Comparable with LightGBM baseline.
 """
 import pandas as pd
@@ -21,29 +21,27 @@ warnings.filterwarnings('ignore')
 
 # Parameters
 DATA_DIR = Path('data/split')
-OUTPUT_DIR = Path('experiments/transformer')
+OUTPUT_DIR = Path('experiments/lstm')
 DATASET = 'ETTh1'
 TARGET_COL = 'OT'
 FEATURE_COLS = ['HUFL', 'HULL', 'MUFL', 'MULL', 'LUFL', 'LULL', 'OT']
 
-# Feature engineering parameters (同じ特徴量を使用)
+# Feature engineering parameters (LightGBM と同じ)
 LAG_STEPS = [1, 2, 3, 6, 12, 24]
 ROLLING_WINDOWS = [3, 6, 12, 24]
 
-# Transformer parameters
+# LSTM parameters
 SEQ_LEN = 24  # 入力シーケンス長（24時間）
 PRED_LEN = 1   # 出力長（1時間先を予測）
-D_MODEL = 128   # Transformer の埋め込み次元
-NUM_HEADS = 8  # マルチヘッドアテンション
-NUM_LAYERS = 3  # Transformer レイヤー数
-D_FF = 256     # フィードフォワードネットワークの次元
-DROPOUT = 0.1
+HIDDEN_SIZE = 64  # LSTM の隠れ層サイズ
+NUM_LAYERS = 2    # LSTM レイヤー数
+DROPOUT = 0.2     # ドロップアウト率
 
 # Training parameters
 BATCH_SIZE = 32
-NUM_EPOCHS = 100
-LEARNING_RATE = 0.0005
-EARLY_STOPPING_PATIENCE = 20
+NUM_EPOCHS = 150
+LEARNING_RATE = 0.001
+EARLY_STOPPING_PATIENCE = 30
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 print(f"Using device: {DEVICE}")
@@ -139,7 +137,7 @@ def prepare_features(train_df, val_df, test_df):
 
 
 def create_sequences(data, target_col, seq_len=24):
-    """Create sequences for Transformer."""
+    """Create sequences for LSTM."""
     X, y = [], []
     
     # 数値列のみを選択（日付などの非数値列を除外）
@@ -158,8 +156,8 @@ def create_sequences(data, target_col, seq_len=24):
 
 
 def prepare_datasets(train_df, val_df, test_df):
-    """Prepare datasets for Transformer."""
-    print("\nPreparing datasets for Transformer...")
+    """Prepare datasets for LSTM."""
+    print("\nPreparing datasets for LSTM...")
     
     # Reset index to avoid including datetime index in values
     train_df = train_df.reset_index(drop=True)
@@ -215,61 +213,42 @@ def prepare_datasets(train_df, val_df, test_df):
             X_test_scaled, y_test_scaled, scaler_y, feature_cols)
 
 
-class TransformerModel(nn.Module):
-    """Transformer model for time series forecasting."""
+class LSTMModel(nn.Module):
+    """LSTM model for time series forecasting."""
     
-    def __init__(self, input_size, d_model, num_heads, num_layers, d_ff, dropout, pred_len=1):
-        super(TransformerModel, self).__init__()
+    def __init__(self, input_size, hidden_size, num_layers, dropout, pred_len=1):
+        super(LSTMModel, self).__init__()
         
-        self.embedding = nn.Linear(input_size, d_model)
-        self.pos_encoder = PositionalEncoding(d_model, dropout)
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
         
-        encoder_layer = nn.TransformerEncoderLayer(
-            d_model=d_model,
-            nhead=num_heads,
-            dim_feedforward=d_ff,
-            dropout=dropout,
+        # LSTM layer
+        self.lstm = nn.LSTM(
+            input_size=input_size,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            dropout=dropout if num_layers > 1 else 0,
             batch_first=True
         )
-        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
         
-        self.output_layer = nn.Linear(d_model, pred_len)
-        self.d_model = d_model
+        # Output layer
+        self.fc = nn.Linear(hidden_size, pred_len)
     
     def forward(self, x):
         # x shape: (batch_size, seq_len, input_size)
-        x = self.embedding(x) * np.sqrt(self.d_model)
-        x = self.pos_encoder(x)
-        x = self.transformer_encoder(x)
-        # Use last token
-        x = x[:, -1, :]
-        x = self.output_layer(x)
-        return x.squeeze(-1)
-
-
-class PositionalEncoding(nn.Module):
-    """Positional encoding for Transformer."""
-    
-    def __init__(self, d_model, dropout=0.1, max_len=5000):
-        super(PositionalEncoding, self).__init__()
-        self.dropout = nn.Dropout(p=dropout)
         
-        pe = torch.zeros(max_len, d_model)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-np.log(10000.0) / d_model))
+        # LSTM forward pass
+        lstm_out, (h_n, c_n) = self.lstm(x)
+        # lstm_out shape: (batch_size, seq_len, hidden_size)
+        # h_n shape: (num_layers, batch_size, hidden_size)
         
-        pe[:, 0::2] = torch.sin(position * div_term)
-        if d_model % 2 != 0:
-            pe[:, 1::2] = torch.cos(position * div_term[:-1])
-        else:
-            pe[:, 1::2] = torch.cos(position * div_term)
+        # Use the output of the last time step
+        last_output = lstm_out[:, -1, :]  # (batch_size, hidden_size)
         
-        pe = pe.unsqueeze(0)
-        self.register_buffer('pe', pe)
-    
-    def forward(self, x):
-        x = x + self.pe[:, :x.size(1), :]
-        return self.dropout(x)
+        # Pass through fully connected layer
+        output = self.fc(last_output)  # (batch_size, pred_len)
+        
+        return output.squeeze(-1)
 
 
 def train_epoch(model, train_loader, criterion, optimizer, device):
@@ -285,6 +264,7 @@ def train_epoch(model, train_loader, criterion, optimizer, device):
         y_pred = model(X_batch)
         loss = criterion(y_pred, y_batch)
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         optimizer.step()
         
         total_loss += loss.item()
@@ -310,13 +290,13 @@ def validate(model, val_loader, criterion, device):
 
 
 def train_model(X_train, y_train, X_val, y_val):
-    """Train Transformer model with logging."""
+    """Train LSTM model with logging."""
     print("\n" + "="*60)
-    print("Training Transformer Model")
+    print("Training LSTM Model")
     print("="*60)
     
     # Create logs directory
-    LOGS_DIR = Path('experiments/transformer/logs')
+    LOGS_DIR = Path('experiments/lstm/logs')
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
     
     # Create data loaders
@@ -333,12 +313,10 @@ def train_model(X_train, y_train, X_val, y_val):
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
     
     # Initialize model
-    model = TransformerModel(
+    model = LSTMModel(
         input_size=X_train.shape[-1],
-        d_model=D_MODEL,
-        num_heads=NUM_HEADS,
+        hidden_size=HIDDEN_SIZE,
         num_layers=NUM_LAYERS,
-        d_ff=D_FF,
         dropout=DROPOUT,
         pred_len=PRED_LEN
     ).to(DEVICE)
@@ -346,14 +324,13 @@ def train_model(X_train, y_train, X_val, y_val):
     print(f"\nModel Architecture:")
     print(f"  Input size: {X_train.shape[-1]}")
     print(f"  Sequence length: {SEQ_LEN}")
-    print(f"  D_model: {D_MODEL}")
-    print(f"  Num heads: {NUM_HEADS}")
+    print(f"  Hidden size: {HIDDEN_SIZE}")
     print(f"  Num layers: {NUM_LAYERS}")
     print(f"  Dropout: {DROPOUT}")
     
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=15)
     
     # ログファイルの準備
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -391,7 +368,7 @@ def train_model(X_train, y_train, X_val, y_val):
             'epoch': epoch
         }, step=epoch)
         
-        if (epoch + 1) % 10 == 0:
+        if (epoch + 1) % 20 == 0:
             print(f"Epoch {epoch+1}/{NUM_EPOCHS} - Train Loss: {train_loss:.6f}, Val Loss: {val_loss:.6f}, LR: {current_lr:.6f}")
         
         # Early stopping
@@ -462,12 +439,11 @@ def save_model_and_results(model, metrics, feature_columns, log_file):
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     
     # Save model
-    model_path = OUTPUT_DIR / f'transformer_{DATASET}_{timestamp}.pt'
+    model_path = OUTPUT_DIR / f'lstm_{DATASET}_{timestamp}.pt'
     torch.save(model.state_dict(), str(model_path))
     print(f"\nModel saved to: {model_path}")
     
     # Copy log file to output directory
-    import shutil
     output_log = OUTPUT_DIR / f'training_log_{DATASET}_{timestamp}.csv'
     shutil.copy(log_file, output_log)
     print(f"Training log saved to: {output_log}")
@@ -476,13 +452,11 @@ def save_model_and_results(model, metrics, feature_columns, log_file):
     results = {
         'dataset': DATASET,
         'timestamp': timestamp,
-        'model_type': 'Transformer',
+        'model_type': 'LSTM',
         'parameters': {
             'seq_len': SEQ_LEN,
-            'd_model': D_MODEL,
-            'num_heads': NUM_HEADS,
+            'hidden_size': HIDDEN_SIZE,
             'num_layers': NUM_LAYERS,
-            'd_ff': D_FF,
             'dropout': DROPOUT,
             'learning_rate': LEARNING_RATE,
             'batch_size': BATCH_SIZE,
@@ -525,19 +499,17 @@ def save_model_and_results(model, metrics, feature_columns, log_file):
 def main():
     """Main training pipeline."""
     # Initialize wandb
-    run_name = f"transformer_{DATASET}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    run_name = f"lstm_{DATASET}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     
     wandb.init(
         project="timeseries-forecast",
         name=run_name,
         config={
             'dataset': DATASET,
-            'model': 'Transformer',
+            'model': 'LSTM',
             'seq_len': SEQ_LEN,
-            'd_model': D_MODEL,
-            'num_heads': NUM_HEADS,
+            'hidden_size': HIDDEN_SIZE,
             'num_layers': NUM_LAYERS,
-            'd_ff': D_FF,
             'dropout': DROPOUT,
             'learning_rate': LEARNING_RATE,
             'batch_size': BATCH_SIZE,
@@ -545,11 +517,11 @@ def main():
             'lag_steps': LAG_STEPS,
             'rolling_windows': ROLLING_WINDOWS
         },
-        tags=['baseline', 'transformer', DATASET]
+        tags=['baseline', 'lstm', DATASET]
     )
     
     print("="*60)
-    print("Transformer Baseline Training")
+    print("LSTM Baseline Training")
     print(f"Dataset: {DATASET}")
     print(f"wandb Project: timeseries-forecast")
     print(f"wandb Run: {run_name}")
