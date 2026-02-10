@@ -12,3 +12,6 @@ eda_output/
 *.jpeg
 .DS_Store
 experiments/
+.pt
+.log
+wandb/
