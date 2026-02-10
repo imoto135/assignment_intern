@@ -1,0 +1,11 @@
+# Lag Analysis Summary
+
+## Max Correlation Lags
+| Feature | Optimal Lag (Hours) | Correlation |
+|---|---|---|
+| HUFL | 15 | 0.1465 |
+| HULL | 10 | 0.2630 |
+| MUFL | 63 | 0.1414 |
+| MULL | 10 | 0.2539 |
+| LUFL | 7 | 0.1331 |
+| LULL | 6 | 0.0785 |
