@@ -36,7 +36,7 @@
 ## 使用データ
 
 - ETT（Electricity Transformer Temperature）データセット
-  - 本リポジトリの `data/` 内のデータを使用してください
+  - 本リポジトリの `data/` 内どのデータを使用してください
   - 詳細は [zhouhaoyi/ETDataset](https://github.com/zhouhaoyi/ETDataset/blob/main/README.md) を参照してください
   - 追加データの利用は任意ですが、使用する場合は出典を明記してください
 

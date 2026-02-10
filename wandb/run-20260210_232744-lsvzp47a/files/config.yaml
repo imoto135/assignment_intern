@@ -1,0 +1,91 @@
+_wandb:
+    value:
+        cli_version: 0.24.2
+        e:
+            ucy9hql7ww2v50nqldabvi2ko3lcyttx:
+                apple:
+                    ecpuCores: 6
+                    gpuCores: 10
+                    memoryGb: 16
+                    name: Apple M4
+                    pcpuCores: 4
+                    ramTotalBytes: "17179869184"
+                    swapTotalBytes: "11811160064"
+                codePath: train_lightgbm.py
+                codePathLocal: train_lightgbm.py
+                cpu_count: 10
+                cpu_count_logical: 10
+                disk:
+                    /:
+                        total: "494384795648"
+                        used: "217757556736"
+                email: imotoyuichi01@gmail.com
+                executable: /Users/imoto/dev/assignment-main/.venv/bin/python
+                git:
+                    commit: 0fd306cc831293320de6f8b08b261fa8f652bb26
+                    remote: https://github.com/imoto135/assignment_intern.git
+                host: imotonoMacBook-Air.local
+                memory:
+                    total: "17179869184"
+                os: macOS-26.0.1-arm64-arm-64bit
+                program: /Users/imoto/dev/assignment-main/train_lightgbm.py
+                python: CPython 3.9.6
+                root: /Users/imoto/dev/assignment-main
+                startedAt: "2026-02-10T14:27:44.137404Z"
+                writerId: ucy9hql7ww2v50nqldabvi2ko3lcyttx
+        m: []
+        python_version: 3.9.6
+        t:
+            "1":
+                - 5
+                - 8
+                - 53
+            "2":
+                - 5
+                - 8
+                - 53
+            "3":
+                - 2
+                - 3
+                - 13
+                - 15
+                - 16
+                - 61
+            "4": 3.9.6
+            "5": 0.24.2
+            "12": 0.24.2
+            "13": darwin-arm64
+dataset:
+    value: ETTh1
+early_stopping_rounds:
+    value: 50
+lag_steps:
+    value:
+        - 1
+        - 2
+        - 3
+        - 6
+        - 12
+        - 24
+lgbm_params:
+    value:
+        bagging_fraction: 0.8
+        bagging_freq: 5
+        boosting_type: gbdt
+        feature_fraction: 0.8
+        learning_rate: 0.05
+        metric: rmse
+        num_leaves: 31
+        objective: regression
+        random_state: 42
+        verbose: -1
+model:
+    value: LightGBM
+num_boost_round:
+    value: 1000
+rolling_windows:
+    value:
+        - 3
+        - 6
+        - 12
+        - 24

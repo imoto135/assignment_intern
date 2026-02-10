@@ -1,0 +1,122 @@
+============================================================
+LightGBM Baseline Training
+Dataset: ETTh1
+wandb Project: timeseries-forecast
+wandb Run: lightgbm_ETTh1_20260210_232743
+============================================================
+Loading ETTh1 dataset...
+Train: 12194 samples
+Val: 2613 samples
+Test: 2613 samples
+
+Creating lag features...
+Creating rolling features...
+Adding time features...
+
+Dropping rows with NaN values...
+After preprocessing:
+  Train: 12170 samples
+  Val: 2589 samples
+  Test: 2589 samples
+
+Feature count: 114
+Feature names: ['HUFL', 'HULL', 'MUFL', 'MULL', 'LUFL', 'LULL', 'HUFL_lag_1', 'HUFL_lag_2', 'HUFL_lag_3', 'HUFL_lag_6']... (showing first 10)
+
+============================================================
+Training LightGBM Model
+============================================================
+
+Starting training...
+Parameters: {
+  "objective": "regression",
+  "metric": "rmse",
+  "boosting_type": "gbdt",
+  "num_leaves": 31,
+  "learning_rate": 0.05,
+  "feature_fraction": 0.8,
+  "bagging_fraction": 0.8,
+  "bagging_freq": 5,
+  "verbose": -1,
+  "random_state": 42
+}
+Training until validation scores don't improve for 50 rounds
+Training until validation scores don't improve for 50 rounds
+[10]	train's rmse: 5.07556	valid's rmse: 7.74129
+[20]	train's rmse: 3.14775	valid's rmse: 4.82422
+[30]	train's rmse: 2.04413	valid's rmse: 3.04781
+[40]	train's rmse: 1.43905	valid's rmse: 2.02156
+[50]	train's rmse: 1.13426	valid's rmse: 1.44784
+[60]	train's rmse: 0.991004	valid's rmse: 1.12213
+[70]	train's rmse: 0.923096	valid's rmse: 0.95161
+[80]	train's rmse: 0.886933	valid's rmse: 0.863573
+[90]	train's rmse: 0.863661	valid's rmse: 0.797562
+[100]	train's rmse: 0.845413	valid's rmse: 0.773947
+[110]	train's rmse: 0.830817	valid's rmse: 0.765843
+[120]	train's rmse: 0.816489	valid's rmse: 0.762145
+[130]	train's rmse: 0.803879	valid's rmse: 0.759713
+[140]	train's rmse: 0.792237	valid's rmse: 0.749249
+[150]	train's rmse: 0.780873	valid's rmse: 0.748002
+[160]	train's rmse: 0.770853	valid's rmse: 0.745799
+[170]	train's rmse: 0.760543	valid's rmse: 0.744705
+[180]	train's rmse: 0.751097	valid's rmse: 0.742188
+[190]	train's rmse: 0.741866	valid's rmse: 0.739138
+[200]	train's rmse: 0.732536	valid's rmse: 0.742397
+[210]	train's rmse: 0.723433	valid's rmse: 0.741688
+[220]	train's rmse: 0.715139	valid's rmse: 0.732371
+[230]	train's rmse: 0.706436	valid's rmse: 0.733068
+[240]	train's rmse: 0.697372	valid's rmse: 0.743003
+[250]	train's rmse: 0.690268	valid's rmse: 0.740885
+[260]	train's rmse: 0.68273	valid's rmse: 0.737005
+[270]	train's rmse: 0.675023	valid's rmse: 0.734433
+Early stopping, best iteration is:
+[221]	train's rmse: 0.714104	valid's rmse: 0.731904
+
+Best iteration: 221
+Best score: defaultdict(<class 'collections.OrderedDict'>, {'train': OrderedDict([('rmse', np.float64(0.7141043843894052))]), 'valid': OrderedDict([('rmse', np.float64(0.7319041435140067))])})
+
+============================================================
+Model Evaluation
+============================================================
+
+Train Set Metrics:
+  RMSE: 0.7141
+  MAE: 0.5033
+  MSE: 0.5099
+
+Validation Set Metrics:
+  RMSE: 0.7319
+  MAE: 0.5408
+  MSE: 0.5357
+
+Test Set Metrics:
+  RMSE: 0.7143
+  MAE: 0.5125
+  MSE: 0.5103
+
+Model saved to: experiments/baseline/lgbm_ETTh1_20260210_232748.txt
+Results saved to: experiments/baseline/results_ETTh1_20260210_232748.json
+Feature importance saved to: experiments/baseline/feature_importance_ETTh1_20260210_232748.csv
+[34m[1mwandb[0m: [33mWARNING[0m Symlinked 1 file into the W&B run directory; call wandb.save again to sync new files.
+
+Top 20 Important Features:
+            feature   importance
+           OT_lag_1 5.041406e+06
+  OT_rolling_mean_3 1.689362e+06
+           OT_lag_2 7.120170e+04
+           hour_cos 8.421630e+03
+          OT_lag_24 7.128018e+03
+ OT_rolling_mean_24 5.066486e+03
+  OT_rolling_mean_6 3.715804e+03
+               MUFL 2.966077e+03
+   OT_rolling_std_3 2.044734e+03
+               HUFL 1.978201e+03
+       day_of_month 1.891271e+03
+               hour 1.557065e+03
+   OT_rolling_std_6 1.554807e+03
+ OT_rolling_mean_12 1.108220e+03
+  OT_rolling_std_24 1.033345e+03
+         HUFL_lag_1 1.023512e+03
+ LUFL_rolling_std_3 9.494013e+02
+               LUFL 9.464899e+02
+  OT_rolling_std_12 8.712114e+02
+MUFL_rolling_mean_3 8.619229e+02
