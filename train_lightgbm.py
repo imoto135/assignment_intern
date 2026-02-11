@@ -302,7 +302,7 @@ def main():
     run_name = f"lightgbm_{DATASET}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     
     wandb.init(
-        project="oil_prediction",
+        project="timeseries-forecast",
         name=run_name,
         config={
             'dataset': DATASET,
